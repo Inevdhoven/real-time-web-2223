@@ -1,18 +1,56 @@
 <main>
-    <form action="/raad-het-boek" method="post" id="form-username">
-        <label for="username">
-            Naam:
-            <input type="text" name="username" id="username">
-        </label>
-        {{!-- <label for="genre">
-            Kies een genre:
-            <select name="genre" id="genre">
-                <option value="fantasy">Fantasy</option>
-                 <option value="fiction">Fiction</option>
-                <option value="romance">Romance</option>
-                <option value="thriller">Thriller</option>
-            </select>
-        </label> --}}
-        <button type="submit" id="start-game">Start</button>
-    </form>
+    <section class="username show">
+        <form id="form-username">
+            <label for="username">
+                Naam:
+                <input type="text" name="username" id="username">
+            </label>
+            {{!-- <label for="genre">
+                Kies een genre:
+                <select name="genre" id="genre">
+                    <option value="fantasy">Fantasy</option>
+                    <option value="fiction">Fiction</option>
+                    <option value="romance">Romance</option>
+                    <option value="thriller">Thriller</option>
+                </select>
+            </label> --}}
+            <button type="submit" id="start-game">Start</button>
+        </form>
+    </section>
+
+    <section class="guess-book hidden">
+        <h2>Raad het boek</h2>
+        <p>Welkom <span class="username"></span>. Raad het boek van de genre <span class="genre">thriller</span>.</p>
+        <section>
+            <div>
+                <img class="book-image" src="" alt="">
+            </div>
+            <form action="" method="post" class="show">
+                <label for="title">
+                    <p>Raad de title van het boek:</p>
+                    <input type="text" name="title" id="title">
+                    <input type="hidden" name="booktitle" value="">
+                    <input type="hidden" name="username" value="">
+                </label>
+                <button type="submit" id="title-btn">Check</button>
+            </form>
+            <p class="hidden" id="game-text"></p>
+            <button class="hidden" id="open-chat">Open chat</button>
+            <button class="hidden" id="retry">Raad een nieuw boek</button>
+        </section>
+    </section>
+
+    <section class="chat hidden">
+        <h2>Chat met anderen</h2>
+        <section>
+        <ul></ul>
+        <p></p>
+        <form>
+            <fieldset>
+            <input type="text" placeholder="Message" id="message" autocomplete="off">
+            <button id="send"><span>Send</span></button>
+            </fieldset>
+        </form>
+        </section>
+    </section>
 </main>

@@ -1,11 +1,238 @@
-.guess-book div {
-  overflow: hidden;
-  display: inline-block;
+/* FONTS */
+@font-face {
+  font-family: 'Montserrat Regular';
+  font-weight: 400;
+  src: url(/public/fonts/montserrat-regular.ttf);
 }
 
-.guess-book div img {
+@font-face {
+  font-family: 'Montserrat Bold';
+  font-weight: 700;
+  src: url(/public/fonts/montserrat-bold.ttf);
+}
+
+@font-face {
+  font-family: 'Montserrat Regular Italic';
+  font-weight: 400;
+  font-style: italic;
+  src: url(/public/fonts/montserrat-italic.ttf);
+}
+
+@font-face {
+  font-family: 'Montserrat Bold Italic';
+  font-weight: 700;
+  font-style: italic;
+  src: url(/public/fonts/montserrat-bolditalic.ttf);
+}
+
+@font-face {
+  font-family: 'Playfair Display Regular';
+  font-weight: 400;
+  src: url(/public/fonts/playfairdisplay-regular.ttf);
+}
+
+@font-face {
+  font-family: 'Playfair Display Bold';
+  font-weight: 700;
+  src: url(/public/fonts/playfairdisplay-bold.ttf);
+}
+
+@font-face {
+  font-family: 'Playfair Display Black';
+  font-weight: 900;
+  src: url(/public/fonts/playfairdisplay-black.ttf);
+}
+
+/* VARIABLES */
+:root {
+  /* COLORS */
+  --primary-color: rgb(55, 114, 255);
+  --secondary-color: #FE4A49;
+  --trinary-color: rgb(40, 77, 162);
+  --background-color: rgba(112, 228, 239, 0.3);
+  --black: rgb(32, 32, 32);
+  --white: rgb(255, 255, 255);
+
+  /* FONTS */
+  --font-text: 'Montserrat Regular', sans-serif;
+  --font-title-h1: 'Playfair Display Black', serif;
+  --font-title-h2: 'Playfair Display Bold', serif;
+}
+
+/* GLOBAL */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  height: 100dvh;
+  align-content: center;
+
+  font-family: var(--font-text);
+  font-size: 1em;
+  color: var(--black);
+  background-color: var(--background-color);
+}
+
+h1 {
+  margin: 0 0 0.8rem 0;
+  font-family: var(--font-title-h1);
+  font-size: 2.8em;
+  color: var(--primary-color);
+  text-align: center;
+}
+
+h2 {
+  margin: 0 0 0.4rem 0;
+  font-family: var(--font-title-h2);
+  font-size: 2em;
+  color: var(--secondary-color);
+  text-align: center;
+}
+
+input, button {
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.5rem;
+  font-family: var(--font-text);
+  font-size: 1em;
+  color: var(--black);
+}
+
+input {
+  border: 0.125rem solid var(--black);
+}
+
+input:focus-within, input:focus, input:focus-visible {
+  outline-color: var(--primary-color);
+}
+
+button {
+  padding: 0.3rem 1rem;
+  border: 0.125rem solid var(--secondary-color);
+  background-color: var(--secondary-color);
+  color: var(--white);
+  cursor: pointer;
+}
+
+.hidden {
+  display: none;
+}
+
+.show {
+  display: block;
+}
+
+/* SECTION: USERNAME */
+
+/* SECTION: GUESS BOOK  */
+.guess-book.show {
+  display: grid;
+  place-items: center;
+}
+
+span.username, span.genre {
+  font-family: 'Montserrat Bold', sans-serif;
+  color: var(--primary-color);
+}
+
+.guess-book section {
+  padding: 0 2em;
+  display: grid;
+  place-items: center;
+}
+
+.guess-book section form {
+  margin-bottom: 1rem;
+}
+
+.guess-book section div {
+  border-radius: 0.5rem;
+  margin: 1.5em 0;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.guess-book img.book-image {
+  border-radius: 0.5rem;
   filter: blur(0.5em);
   -webkit-user-drag: none; 
   -moz-user-drag: none; 
   -ms-user-drag: none;
 }
+
+.guess-book img.book-image.lose1 {
+  filter: blur(0.35em);
+}
+
+.guess-book img.book-image.lose2 {
+  filter: blur(0.2em);
+}
+
+.guess-book img.book-image.lose3 {
+  filter: blur(0.15em);
+}
+
+.guess-book img.book-image.win,
+.guess-book img.book-image.lose4 {
+  filter: blur(0);
+}
+
+.guess-book section form label p {
+  margin-bottom: 0.5rem;
+}
+
+#game-text {
+  margin: 0.5rem 0;
+}
+
+#open-chat {
+  margin-bottom: 0.5em;
+}
+
+/* SECTION: CHAT */
+body.open-chat {
+  grid-template-columns: 6.25rem 1fr;
+}
+
+.chat {
+  height: calc(100dvh - 6.25rem);
+}
+
+.chat section form {
+  position: absolute;
+  bottom: 0;
+}
+
+fieldset {
+  border: none;
+  margin: 0.5rem 0;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat ul {
+  height: 72dvh;
+  padding: 0.5rem;
+  list-style-type: none;
+  overflow-y: scroll;
+}
+
+.chat ul li {
+  max-width: fit-content;
+  padding: 0.5rem 0.8rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  background-color: var(--trinary-color);
+  color: var(--white);
+}
+
+.chat ul li p#name {
+  font-family: 'Montserrat Bold', sans-serif;
+}
+

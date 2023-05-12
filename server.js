@@ -1,3 +1,4 @@
+// Imports
 import path from 'path';
 import express from 'express';
 import dotenv from 'dotenv';
@@ -5,19 +6,19 @@ import http from 'http';
 import handlebars from 'express-handlebars';
 import { Server } from 'socket.io';
 import fetch from 'node-fetch';
+import session from 'express-session';
 
-dotenv.config();
+dotenv.config(); // Load .env file
 
+// Variables
 const app = express();
 const port = process.env.PORT || 4400;
 const server = http.createServer(app);
 const io = new Server(server);
 const __dirname = path.resolve();
 const historySize = 50;
-const assignedBooks = new Map();
 
-let history = []
-// let firstUserGenre = {};
+let history = [];
 let username;
 let currentUser;
 let users = [];
@@ -26,11 +27,17 @@ let books = [];
 let currentBook = {};
 let activeRooms = [];
 
+// App settings
 app.set('view engine', 'hbs');
 app.set('views', 'views')
 
 app.use('/', express.static(__dirname + '/'));
 app.use(express.static(path.resolve('public')));
+app.use(session({
+    secret: 'geheim',
+    resave: false,
+    saveUninitialized: true
+}));
 
 app.engine('hbs', handlebars.engine({
     layoutsDir: __dirname + '/views/layouts',
@@ -39,202 +46,150 @@ app.engine('hbs', handlebars.engine({
     partialsDir: __dirname + '/views/partials',
 }))
 
-async function chooseGenre(genre) {
-    const bookQueryByGenre = await fetch(`https://www.googleapis.com/books/v1/volumes?q=subject:${genre}&orderBy=relevance&maxResults=10&key=${process.env.API_KEY}`);
-    const result = await bookQueryByGenre.json();
-    return result.items.map((item) => item.volumeInfo);
+// Functions
+async function fetchGenre(genre) {
+    const bookQueryByGenre = await fetch(`https://www.googleapis.com/books/v1/volumes?q=subject:${genre}&orderBy=relevance&maxResults=20&key=${process.env.API_KEY}`); // Fetch books by genre
+    const result = await bookQueryByGenre.json(); // Convert to JSON
+    return result.items.map((item) => item.volumeInfo); // Return array of books
 }
 
-function fetchRandomBook() {
-    const randomBookIndex = Math.floor(Math.random() * books.length);
-    return books[randomBookIndex];
+function getRandomBook() {
+    const randomBookIndex = Math.floor(Math.random() * books.length); // Get random book index
+    return books[randomBookIndex]; // Return random book
 }
 
+// Routes
 app.get('/', async function (req, res) {
-    res.render('main', { layout: 'index' });
+    res.render('main', { layout: 'index' }); // Render main.hbs
 });
 
-app.get('/raad-het-boek', async function (req, res) {
-    // username = req.query.username;
-    // genre = req.query.genre;
-
-    // console.log('Users: ' + JSON.stringify(users));
-    // console.log(JSON.stringify(users.map((user) => user.username)));
-    // const userUsername = users.map((user) => user.username);
-    // const userGenre = users.map((user) => user.genre);
-    // console.log('User: ' + JSON.stringify(userUsername));
-    // console.log('Genre: ' + JSON.stringify(userGenre));
-
-
-    if (!users) {
-        console.log('User not found');
-        res.redirect('/');
-        return;
-    }
-
-    console.log('/raad-het-boek123, username: ' + username, 'genre: ' + genre)
-
-    books = await chooseGenre(genre);
-    console.log('/raad-het-boek, ingeladen boeken: ' + books.length)
-
-    currentBook = fetchRandomBook()
-    console.log('/raad-het-boek, random boek: ' + currentBook)
-
-    res.render('genres', { layout: 'index', name: username, genre: genre, result: currentBook });
-});
-
-app.get('/chat/:roomName', async function (req, res) {
-    // const username = req.query.username;
-    // const genre = req.query.genre;
-    // const currentBook = req.query.currentBook;
-
-    console.log('Chatroom ' + username, genre);
-
-    res.render('chat', { layout: 'index', name: username, genre: genre, result: currentBook });
-});
-
+// Socket.io
 io.on('connection', (socket) => {
     console.log('a user connected');
-    // console.log('testestest ' + username)
-    // socket.emit('genre', genre)
+
+    socket.on('getAPI', async () => { // Listen for getAPI
+        books = await fetchGenre(genre); // Fetch books by genre
+
+        currentBook = await getRandomBook(); // Get random book
+
+        console.log('Current Book: ' + currentBook);
+
+        socket.emit('randomBook', currentBook); // Send random book to client
+    });
 
     socket.on('newUser', (data) => {
-        console.log('DATA ' + JSON.stringify(data))
-        console.log('new user: ' + data.username + ' ' + data.genre);
-        username = data.username;
-        // genre = data.genre;
+        console.log('new user: ' + data.username);
+        username = data.username; // Set username to data.username
 
-        // if (Object.keys(firstUserGenre).length !== 0) { // Check if firstUserGenre is not empty
-        //     // If yes, use the first user's genre
-        //     socket.emit('setGenre', genre);
-        //     console.log('Not First User: ' + ' ' + JSON.stringify(firstUserGenre.genre));
-        // } else {
-        //     // If no, then make the first user's genre
-        //     firstUserGenre = {
-        //         username: data.username,
-        //         genre: data.genre,
-        //         id: socket.id
-        //     };
-        //     const firstUser = firstUserGenre;
-        //     genre = firstUser.genre;
-        //     console.log('halloooo' + genre)
-        //     console.log('First User: ' + JSON.stringify(firstUserGenre) + ' ' + genre);
-        // }
-
-        const user = {
+        const user = { // Create user object with username and socket id
             username: data.username,
-            // genre: data.genre,
             id: socket.id,
             bookToCheck: ''
         }
-        users.push(user);
+
+        users.push(user); // Push user to users array
         console.log('Users: ' + JSON.stringify(users));
 
-        io.emit('users', users);
+        io.emit('users', users); // Send users to client
     });
 
-    users.forEach((user) => {
-        if (user.id === socket.id) {
-            username = user.username;
-            // genre = user.genre;
+    users.forEach((user) => { // Loop through users
+        if (user.id === socket.id) { // Check if user id matches socket id
+            username = user.username; // Set username to user.username
         }
     });
 
-    socket.on('bookCheck', (usernameInput, bookTitleInput) => {
+    socket.on('bookCheck', (usernameInput, bookTitleInput) => { // Listen for bookCheck
         console.log('bookCheck Current User: ' + usernameInput);
-        users.forEach((user, i) => {
+
+        users.forEach((user, i) => { // Loop through users
             console.log(user);
             console.log(usernameInput);
-            if (user.username == usernameInput) {
-                currentUser = usernameInput;
-                user.bookToCheck = bookTitleInput;
-                users[i] = user;
+            if (user.username == usernameInput) { // Check if user.username matches usernameInput
+                currentUser = usernameInput; // Set currentUser to usernameInput
+                user.bookToCheck = bookTitleInput; // Set user.bookToCheck to bookTitleInput
+                users[i] = user; // Set users[i] to user
+                console.log('bookCheck ' + JSON.stringify(users));
             }
         });
-
         console.log(users);
     });
 
-    console.log('Current User: ' + currentUser);
-    socket.emit('openChat', currentUser);
+    socket.emit('openChat', currentUser); // Send currentUser to client
 
-    socket.emit('history', history);
-
-    // socket.on('setGenre', (data) => {
-    //     genre = data.genre;
-
-    //     io.emit('genre', genre);
-    // })
+    socket.emit('history', history); // Send history to client
 
     socket.on('tryTitleBook', async (titleBook, usernameInput) => {
         console.log(titleBook.toLowerCase());
-        const guessedTitleBook = titleBook.toLowerCase();
-        let book = '';
-        users.forEach((user, i) => {
-            if (user.username == usernameInput) {
-                console.log('ifejiwf ' + user.bookToCheck);
-                book = user.bookToCheck
+        const guessedTitleBook = titleBook.toLowerCase(); // Set guessedTitleBook to titleBook.toLowerCase()
+        let book = ''; // Set book to empty string
+        users.forEach((user) => { // Loop through users
+            if (user.username == usernameInput) { // Check if user.username matches usernameInput
+                console.log('BookCheck user book ' + user.bookToCheck);
+                book = user.bookToCheck // Set book to user.bookToCheck
             }
         });
 
-        const currentBookTitle = book;
+        const currentBookTitle = book; // Set currentBookTitle to book
         console.log('currentBookTitle: ' + currentBookTitle);
-        const currentBookTitleLowerCase = currentBookTitle.toLowerCase();
+        const currentBookTitleLowerCase = currentBookTitle.toLowerCase(); // Set currentBookTitleLowerCase to currentBookTitle.toLowerCase()
 
-        // const currentBookTitle = users[usernameInput].bookToCheck;
-        // const currentBookTitleLowerCase = currentBookTitle.toLowerCase();
-        // const currentBookTitle = currentBook.title;
-        // const currentBookTitleLowerCase = currentBook.title.toLowerCase();
-        if (guessedTitleBook === currentBookTitleLowerCase) {
+        if (guessedTitleBook === currentBookTitleLowerCase) { // Check if guessedTitleBook matches currentBookTitleLowerCase
             console.log('Gewonnen', currentBookTitle);
-            socket.emit('win', currentBookTitle)
+            socket.emit('win', currentBookTitle); // Send currentBookTitle to client if guessedTitleBook matches currentBookTitleLowerCase
         } else {
             console.log('Verloren');
-            socket.emit('lose', currentBookTitle)
+            socket.emit('lose', currentBookTitle); // Send currentBookTitle to client if guessedTitleBook does not match currentBookTitleLowerCase
         }
     });
 
     socket.on('createRoom', (roomName) => {
         console.log(`Creating room ${roomName} for user ${username}`);
-        const socketRooms = socket.rooms;
+        const socketRooms = socket.rooms; // Set socketRooms to socket.rooms
         console.log('socket rooms' + socketRooms);
-        console.log('Current User test: ' + currentUser)
-        if (!roomName) {
+        console.log('Current User createRoom: ' + currentUser)
+
+        if (!roomName) { // Check if roomName is empty
             console.log('No roomname');
             return;
         }
 
-        if (activeRooms.includes(roomName)) {
+        if (activeRooms.includes(roomName)) { // Check if activeRooms includes roomName
             console.log(`User ${username} joined room ${roomName}`);
-            socket.join(`${roomName}`);
-            socket.emit("roomJoined", roomName, username);
-        } else {
+            socket.join(`${roomName}`); // Join room
+            socket.emit("roomJoined", roomName, username); // Send roomName and username to client
+        } else { // If activeRooms does not include roomName
             console.log(`Room ${roomName} does not exist yet + ${username}`);
-            activeRooms.push(roomName);
+            activeRooms.push(roomName); // Push roomName to activeRooms
             console.log('Activerooms:' + activeRooms);
-            socket.emit('roomCreated', roomName, username);
+            socket.emit('roomCreated', roomName, username); // Send roomName and username to client
         }
     });
 
     socket.on('chat', (data) => {
-        console.log(JSON.stringify(data) + ' username: ' + username);
-        while (history.length > historySize) {
-            history.shift()
+        // console.log(JSON.stringify(data) + ' username: ' + username);
+        username = data.username; // Set username to data.username
+        while (history.length > historySize) { // Check if history.length is greater than historySize
+            history.shift(); // Remove first item from history
         }
-        history.push(data)
-        io.sockets.emit("chat", data, username);
+        history.push(data); // Push data to history
+        console.log('chat ' + username + ' ' + data);
+        io.sockets.emit("chat", data, username); // Send data and username to client
     });
 
-    socket.on('typing', (inputName) => {
-        console.log(inputName + " aan het typen " + "...");
-        socket.broadcast.emit("typing", inputName);
+    socket.on('typing', (data) => {
+        socket.broadcast.emit('typing', data); // Send data to client
+    });
+
+    socket.on('stopTyping', () => {
+        socket.broadcast.emit('stopTyping'); // Send stopTyping to client
     });
 
     socket.on('disconnect', () => {
-        console.log('user disconnected')
+        console.log('user disconnected'); // Log user when disconnected
     })
 });
 
 server.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+    console.log(`Server is running on port ${port}`); // Log port when server is running
 });
